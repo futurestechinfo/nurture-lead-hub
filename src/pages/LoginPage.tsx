@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,24 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { KeyRound, User } from "lucide-react";
-
-// This would be replaced with a real API call to your MySQL database backend
-const authenticateUser = async (username: string, password: string) => {
-  // Simulate API call
-  console.log(`Authenticating user: ${username} with MySQL database`);
-  
-  // TODO: Replace with actual API call to your MySQL backend
-  return new Promise<{ success: boolean, message: string }>((resolve) => {
-    setTimeout(() => {
-      // Mock authentication logic - in a real app, this would call your backend
-      if (username === "admin" && password === "password123") {
-        resolve({ success: true, message: "Login successful" });
-      } else {
-        resolve({ success: false, message: "Invalid username or password" });
-      }
-    }, 1000);
-  });
-};
+import { authService } from "@/services/api";
 
 const LoginPage = () => {
   const [username, setUsername] = useState("");
@@ -37,12 +19,15 @@ const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      const result = await authenticateUser(username, password);
+      const response = await authService.login(username, password);
       
-      if (result.success) {
-        // Store authentication state in localStorage
+      if (response.success) {
+        // Store auth data in localStorage
         localStorage.setItem("isAuthenticated", "true");
         localStorage.setItem("username", username);
+        if (response.token) {
+          localStorage.setItem("authToken", response.token);
+        }
         
         toast.success("Login successful", {
           description: "Welcome to the Lead Management System"
@@ -51,12 +36,13 @@ const LoginPage = () => {
         navigate("/");
       } else {
         toast.error("Login failed", {
-          description: result.message
+          description: response.message || "Invalid username or password"
         });
       }
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || "A server error occurred. Please try again.";
       toast.error("Login failed", {
-        description: "A server error occurred. Please try again."
+        description: errorMessage
       });
       console.error("Authentication error:", error);
     } finally {
