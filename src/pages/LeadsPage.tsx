@@ -4,11 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
-import DashboardStats from "@/components/DashboardStats";
 import LeadTable from "@/components/LeadTable";
 import AddLeadForm from "@/components/AddLeadForm";
 
-const Index = () => {
+const LeadsPage = () => {
   const [addLeadOpen, setAddLeadOpen] = useState(false);
 
   return (
@@ -18,18 +17,14 @@ const Index = () => {
         <Header />
         <main className="flex-1 overflow-y-auto p-6">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <h1 className="text-3xl font-bold">Leads Management</h1>
             <Button onClick={() => setAddLeadOpen(true)}>
               <Plus size={16} className="mr-2" />
               Add Lead
             </Button>
           </div>
           
-          <DashboardStats />
-          
-          <div className="mt-6">
-            <LeadTable />
-          </div>
+          <LeadTable />
         </main>
       </div>
       
@@ -41,4 +36,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default LeadsPage;
