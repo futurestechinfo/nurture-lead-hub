@@ -1,50 +1,35 @@
 
--- MySQL database setup for Lead Management System
-
--- Create Database
+-- Create database if it doesn't exist
 CREATE DATABASE IF NOT EXISTS lead_management;
 USE lead_management;
 
--- Users Table
+-- Create users table
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  username VARCHAR(50) UNIQUE NOT NULL,
+  username VARCHAR(50) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
   email VARCHAR(100) UNIQUE,
   full_name VARCHAR(100),
-  role ENUM('admin', 'manager', 'sales') NOT NULL DEFAULT 'sales',
-  is_active BOOLEAN DEFAULT TRUE,
+  role ENUM('admin', 'manager', 'agent') DEFAULT 'agent',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Lead Status Table
-CREATE TABLE IF NOT EXISTS lead_statuses (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(50) NOT NULL,
-  description TEXT,
-  color VARCHAR(20),
-  sort_order INT DEFAULT 0
-);
-
--- Leads Table
+-- Create leads table
 CREATE TABLE IF NOT EXISTS leads (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   email VARCHAR(100),
-  phone VARCHAR(20),
-  status_id INT,
-  source VARCHAR(50),
-  owner_id INT,
+  mobile VARCHAR(20),
+  status ENUM('New', 'Contacted', 'Qualified', 'Converted', 'Closed') DEFAULT 'New',
+  followup_status ENUM('None', 'Scheduled', 'Completed') DEFAULT 'None',
+  owner VARCHAR(50),
   notes TEXT,
-  follow_up_date DATE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (status_id) REFERENCES lead_statuses(id),
-  FOREIGN KEY (owner_id) REFERENCES users(id)
+  created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Lead Comments Table
+-- Create lead comments table
 CREATE TABLE IF NOT EXISTS lead_comments (
   id INT AUTO_INCREMENT PRIMARY KEY,
   lead_id INT NOT NULL,
@@ -52,26 +37,20 @@ CREATE TABLE IF NOT EXISTS lead_comments (
   comment TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE,
-  FOREIGN KEY (user_id) REFERENCES users(id)
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Insert default data
--- Default admin user (password: password123)
-INSERT INTO users (username, password, email, full_name, role) 
-VALUES ('admin', '$2b$10$3zJSY0jVYs6tT5XYxz6TXeCzfFmmpGnGEMDwHZ.5aYzwR9jquhZH.', 'admin@example.com', 'Admin User', 'admin');
+-- Insert default admin user (password: password123)
+INSERT INTO users (username, password, email, full_name, role)
+VALUES ('admin', '$2b$10$K.0HwpsoPvGAkvGPqAC6u.vcM5IWr0xOcVMZyLrVvPLjXZwEJA1zS', 'admin@example.com', 'Admin User', 'admin')
+ON DUPLICATE KEY UPDATE username = username;
 
--- Default lead statuses
-INSERT INTO lead_statuses (name, description, color, sort_order) VALUES
-('New', 'Newly created lead', '#3498db', 1),
-('Contacted', 'Initial contact made', '#f39c12', 2),
-('Qualified', 'Lead has been qualified', '#2ecc71', 3),
-('Proposal', 'Proposal has been sent', '#9b59b6', 4),
-('Negotiation', 'In negotiation phase', '#e74c3c', 5),
-('Won', 'Deal won', '#27ae60', 6),
-('Lost', 'Deal lost', '#c0392b', 7);
-
--- Sample leads
-INSERT INTO leads (name, email, phone, status_id, source, owner_id, notes) VALUES
-('John Doe', 'john@example.com', '555-123-4567', 1, 'Website', 1, 'Interested in our premium package'),
-('Jane Smith', 'jane@example.com', '555-987-6543', 2, 'Referral', 1, 'Follow up next week'),
-('Bob Johnson', 'bob@example.com', '555-555-5555', 3, 'Social Media', 1, 'Requested demo');
+-- Insert some sample leads
+INSERT INTO leads (name, email, mobile, status, followup_status, owner, notes)
+VALUES 
+  ('John Doe', 'john@example.com', '555-123-4567', 'New', 'None', 'admin', 'Interested in premium plan'),
+  ('Jane Smith', 'jane@example.com', '555-987-6543', 'Contacted', 'Scheduled', 'admin', 'Called on June 1st, follow up next week'),
+  ('Michael Johnson', 'michael@example.com', '555-567-8901', 'Qualified', 'Completed', 'admin', 'Ready for proposal'),
+  ('Emily Brown', 'emily@example.com', '555-234-5678', 'Converted', 'None', 'admin', 'Signed up for basic plan'),
+  ('David Wilson', 'david@example.com', '555-345-6789', 'New', 'Scheduled', 'admin', 'Referred by Jane Smith')
+ON DUPLICATE KEY UPDATE id = id;

@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const { testConnection } = require('./db/config');
 const authRoutes = require('./routes/auth');
+const leadsRoutes = require('./routes/leads');
 
 // Initialize express app
 const app = express();
@@ -17,6 +18,7 @@ testConnection();
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/leads', leadsRoutes);
 
 // Default route
 app.get('/', (req, res) => {

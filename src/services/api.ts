@@ -48,7 +48,55 @@ export const leadService = {
     }
   },
   
-  // Add more lead services as needed
+  getLeadById: async (id: number) => {
+    try {
+      const response = await api.get(`/leads/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Get lead ${id} error:`, error);
+      throw error;
+    }
+  },
+  
+  createLead: async (leadData: any) => {
+    try {
+      const response = await api.post('/leads', leadData);
+      return response.data;
+    } catch (error) {
+      console.error('Create lead error:', error);
+      throw error;
+    }
+  },
+  
+  updateLead: async (id: number, leadData: any) => {
+    try {
+      const response = await api.put(`/leads/${id}`, leadData);
+      return response.data;
+    } catch (error) {
+      console.error(`Update lead ${id} error:`, error);
+      throw error;
+    }
+  },
+  
+  deleteLead: async (id: number) => {
+    try {
+      const response = await api.delete(`/leads/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Delete lead ${id} error:`, error);
+      throw error;
+    }
+  },
+  
+  bulkUpdateLeads: async (ids: number[], field: string, value: string) => {
+    try {
+      const response = await api.put('/leads/bulk/update', { ids, field, value });
+      return response.data;
+    } catch (error) {
+      console.error('Bulk update leads error:', error);
+      throw error;
+    }
+  }
 };
 
 export default api;
