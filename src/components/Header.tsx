@@ -4,12 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useEffect, useState } from "react";
 
 const Header = () => {
   const navigate = useNavigate();
+  const [username, setUsername] = useState<string>("");
+
+  useEffect(() => {
+    // Get the logged-in username from localStorage
+    const storedUsername = localStorage.getItem("username");
+    if (storedUsername) {
+      setUsername(storedUsername);
+    }
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("isAuthenticated");
+    localStorage.removeItem("username");
     toast.success("Logged out successfully");
     navigate("/login");
   };
@@ -31,9 +42,16 @@ const Header = () => {
           <Bell size={20} />
           <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
         </Button>
-        <Button variant="ghost" size="icon">
-          <User size={20} />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon">
+            <User size={20} />
+          </Button>
+          {username && (
+            <span className="text-sm font-medium hidden md:inline-block">
+              {username}
+            </span>
+          )}
+        </div>
         <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
           <LogOut size={20} />
         </Button>
