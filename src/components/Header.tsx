@@ -1,9 +1,19 @@
 
-import { Bell, Search, User } from "lucide-react";
+import { Bell, LogOut, Search, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const Header = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("isAuthenticated");
+    toast.success("Logged out successfully");
+    navigate("/login");
+  };
+
   return (
     <header className="w-full h-16 bg-white border-b px-4 flex items-center justify-between">
       <div className="flex items-center w-full max-w-md">
@@ -23,6 +33,9 @@ const Header = () => {
         </Button>
         <Button variant="ghost" size="icon">
           <User size={20} />
+        </Button>
+        <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
+          <LogOut size={20} />
         </Button>
       </div>
     </header>
