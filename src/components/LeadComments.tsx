@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { leadService } from "@/services/api";
 import axios from "axios";
 
 // Create a comments service
@@ -118,19 +119,19 @@ const LeadComments = () => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Comments & Notes</CardTitle>
+    <Card className="shadow-sm border-slate-200">
+      <CardHeader className="px-6 pb-2">
+        <CardTitle className="text-xl">Comments & Notes</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 px-6">
         <div className="flex items-start space-x-4">
-          <Avatar>
+          <Avatar className="h-10 w-10 mt-1 bg-gray-200">
             <AvatarFallback>{getInitials(username)}</AvatarFallback>
           </Avatar>
           <div className="flex-1">
             <Textarea
               placeholder="Add a comment or note..."
-              className="resize-none mb-2"
+              className="resize-none mb-2 border-gray-300 focus:border-blue-400"
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               disabled={isSubmitting}
@@ -138,6 +139,7 @@ const LeadComments = () => {
             <Button 
               onClick={handleAddComment} 
               disabled={!newComment.trim() || isSubmitting}
+              className="rounded-full bg-blue-400 hover:bg-blue-500"
             >
               {isSubmitting ? (
                 <>
@@ -153,17 +155,17 @@ const LeadComments = () => {
         
         <div className="space-y-4 mt-6">
           {comments.length === 0 ? (
-            <p className="text-center text-muted-foreground py-4">No comments yet</p>
+            <p className="text-center text-gray-500 py-8">No comments yet</p>
           ) : (
             comments.map((comment: any) => (
               <div key={comment.id} className="flex space-x-4 pb-4 border-b">
-                <Avatar>
+                <Avatar className="h-10 w-10 mt-1">
                   <AvatarFallback>{getInitials(comment.user_name || "User")}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
                     <p className="font-medium">{comment.user_name || "User"}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-gray-500">
                       {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
                     </p>
                   </div>

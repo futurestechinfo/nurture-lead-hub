@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, 
@@ -14,13 +13,39 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { mockLeads } from "@/data/mockData";
+import { useQuery } from "@tanstack/react-query";
+import { leadService } from "@/services/api";
+import { Loader2 } from "lucide-react";
 
 const LeadDetailsHeader = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
-  // Find the lead from our mock data
-  const lead = mockLeads.find(l => l.id.toString() === id);
+  // Fetch lead data from API if available, otherwise use mock data
+  const { data: apiLead, isLoading } = useQuery({
+    queryKey: ['lead', id],
+    queryFn: () => id ? leadService.getLeadById(Number(id)) : Promise.resolve(null),
+    enabled: !!id,
+    // Use this to prevent error toast on missing data (we'll fall back to mock data)
+    retry: false
+  });
+  
+  // Find the lead from our mock data if API data is not available
+  const mockLead = mockLeads.find(l => l.id.toString() === id);
+  
+  // Use API data if available, otherwise fall back to mock data
+  const lead = apiLead || mockLead;
+  
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6 flex justify-center items-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+          <span>Loading lead details...</span>
+        </CardContent>
+      </Card>
+    );
+  }
   
   if (!lead) {
     return (
@@ -64,65 +89,63 @@ const LeadDetailsHeader = () => {
   };
 
   return (
-    <Card>
+    <Card className="mb-6 shadow-sm border-slate-200">
       <CardContent className="p-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-          <div className="flex items-center mb-4 md:mb-0">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center">
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={() => navigate("/leads")}
-              className="mr-2"
+              className="mr-2 rounded-full bg-gray-100 hover:bg-gray-200"
             >
               <ArrowLeft size={20} />
             </Button>
-            <h1 className="text-2xl font-bold">Lead Details</h1>
+            <h1 className="text-xl font-bold">Lead Details</h1>
           </div>
           <div className="flex items-center space-x-2">
-            <Button variant="outline">
+            <Button variant="outline" className="rounded-full">
               <Calendar size={16} className="mr-2" />
               Schedule Follow-up
             </Button>
-            <Button>
+            <Button className="rounded-full bg-blue-500 hover:bg-blue-600">
               <Edit2 size={16} className="mr-2" />
               Edit Lead
             </Button>
           </div>
         </div>
         
-        <div className="flex flex-col md:flex-row gap-6">
-          <div className="flex flex-col items-center">
-            <Avatar className="h-24 w-24 mb-2">
-              <AvatarFallback className="text-xl bg-primary text-primary-foreground">
+        <div className="flex items-start">
+          <div className="flex-shrink-0 mr-6">
+            <Avatar className="h-24 w-24 bg-blue-500 text-white">
+              <AvatarFallback className="text-2xl">
                 {getInitials(lead.name)}
               </AvatarFallback>
             </Avatar>
-            <Badge className={`${getStatusColor(lead.status)} mt-2`}>
+            <Badge className={`${getStatusColor(lead.status)} mt-3 mx-auto`}>
               {lead.status}
             </Badge>
           </div>
           
-          <div className="flex-1 space-y-4">
-            <div>
-              <h2 className="text-xl font-bold">{lead.name}</h2>
-              <p className="text-muted-foreground">Lead #{lead.id}</p>
-            </div>
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold">{lead.name}</h2>
+            <p className="text-gray-500 mb-4">Lead #{lead.id}</p>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4">
               <div className="flex items-center">
-                <Phone size={18} className="text-muted-foreground mr-2" />
+                <Phone size={18} className="text-gray-400 mr-3" />
                 <p>{lead.mobile}</p>
               </div>
               <div className="flex items-center">
-                <Mail size={18} className="text-muted-foreground mr-2" />
+                <Mail size={18} className="text-gray-400 mr-3" />
                 <p>{lead.email}</p>
               </div>
               <div className="flex items-center">
-                <User size={18} className="text-muted-foreground mr-2" />
+                <User size={18} className="text-gray-400 mr-3" />
                 <p>Owner: {lead.owner}</p>
               </div>
               <div className="flex items-center">
-                <Calendar size={18} className="text-muted-foreground mr-2" />
+                <Calendar size={18} className="text-gray-400 mr-3" />
                 <p>Modified: {lead.modified_date}</p>
               </div>
             </div>
