@@ -5,6 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useQueryClient } from "@tanstack/react-query";
+import { leadService } from "@/services/api";
 import {
   Select,
   SelectContent,
@@ -28,11 +30,14 @@ interface AddLeadFormProps {
 const AddLeadForm = ({ open, onClose }: AddLeadFormProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     mobile: "",
     email: "",
-    status: "new",
+    status: "New",
+    followup_status: "None",
     owner: "admin"
   });
 
@@ -45,20 +50,43 @@ const AddLeadForm = ({ open, onClose }: AddLeadFormProps) => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
-    // In a real app, we would send this data to an API
-    console.log("Submitting lead:", formData);
-    
-    toast({
-      title: "Lead created successfully",
-      description: `${formData.name} has been added to the system.`,
-    });
-    
-    onClose();
-    // In real app we might navigate to the new lead
-    // navigate(`/leads/${newLeadId}`);
+    try {
+      // Send data to the API
+      const response = await leadService.createLead(formData);
+      
+      // Update the leads query cache
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      
+      toast({
+        title: "Lead created successfully",
+        description: `${formData.name} has been added to the system.`,
+      });
+      
+      // Reset form and close
+      setFormData({
+        name: "",
+        mobile: "",
+        email: "",
+        status: "New",
+        followup_status: "None",
+        owner: "admin"
+      });
+      
+      onClose();
+    } catch (error) {
+      console.error("Error creating lead:", error);
+      toast({
+        title: "Error creating lead",
+        description: "There was a problem creating the lead. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -119,11 +147,28 @@ const AddLeadForm = ({ open, onClose }: AddLeadFormProps) => {
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="new">New</SelectItem>
-                  <SelectItem value="contacted">Contacted</SelectItem>
-                  <SelectItem value="qualified">Qualified</SelectItem>
-                  <SelectItem value="converted">Converted</SelectItem>
-                  <SelectItem value="closed">Closed</SelectItem>
+                  <SelectItem value="New">New</SelectItem>
+                  <SelectItem value="Contacted">Contacted</SelectItem>
+                  <SelectItem value="Qualified">Qualified</SelectItem>
+                  <SelectItem value="Converted">Converted</SelectItem>
+                  <SelectItem value="Closed">Closed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="followup_status">Follow-up Status</Label>
+              <Select
+                value={formData.followup_status}
+                onValueChange={(value) => handleSelectChange("followup_status", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select followup status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="None">None</SelectItem>
+                  <SelectItem value="Scheduled">Scheduled</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -148,11 +193,11 @@ const AddLeadForm = ({ open, onClose }: AddLeadFormProps) => {
           </div>
           
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={onClose} type="button">
+            <Button variant="outline" onClick={onClose} type="button" disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit">
-              Save Lead
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Saving..." : "Save Lead"}
             </Button>
           </div>
         </form>

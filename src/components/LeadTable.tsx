@@ -1,6 +1,7 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
   Eye, 
   ChevronDown, 
@@ -10,7 +11,8 @@ import {
   Trash2,
   Edit2,
   Check,
-  X
+  X,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { mockLeads } from "@/data/mockData";
+import { leadService } from "@/services/api";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -44,10 +46,10 @@ import {
 const LeadTable = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [sortField, setSortField] = useState("id");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [selectedLeads, setSelectedLeads] = useState<number[]>([]);
-  const [leads, setLeads] = useState(mockLeads);
   const [editingLeadId, setEditingLeadId] = useState<number | null>(null);
   const [editFormData, setEditFormData] = useState({
     name: "",
@@ -60,6 +62,17 @@ const LeadTable = () => {
   const statusOptions = ["New", "Contacted", "Qualified", "Converted", "Closed"];
   const followupOptions = ["None", "Scheduled", "Completed"];
   
+  // Fetch leads from API
+  const { data: leads = [], isLoading, isError, refetch } = useQuery({
+    queryKey: ['leads'],
+    queryFn: leadService.getLeads,
+  });
+  
+  // Reset selected leads when leads change
+  useEffect(() => {
+    setSelectedLeads([]);
+  }, [leads]);
+
   const handleSort = (field: string) => {
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -140,37 +153,50 @@ const LeadTable = () => {
     setEditFormData({ ...editFormData, [field]: value });
   };
 
-  const handleEditSubmit = () => {
-    const updatedLeads = leads.map(lead => {
-      if (lead.id === editingLeadId) {
-        return {
-          ...lead,
-          ...editFormData
-        };
-      }
-      return lead;
-    });
-    
-    setLeads(updatedLeads);
-    setEditingLeadId(null);
-    
-    toast({
-      title: "Lead updated",
-      description: "Lead information has been updated successfully.",
-    });
+  const handleEditSubmit = async () => {
+    try {
+      await leadService.updateLead(editingLeadId!, {
+        ...editFormData
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      setEditingLeadId(null);
+      
+      toast({
+        title: "Lead updated",
+        description: "Lead information has been updated successfully.",
+      });
+    } catch (error) {
+      console.error("Error updating lead:", error);
+      toast({
+        title: "Error updating lead",
+        description: "There was a problem updating the lead.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleDeleteLead = (id: number) => {
-    setLeads(leads.filter(lead => lead.id !== id));
-    
-    toast({
-      title: "Lead deleted",
-      description: "Lead has been removed successfully.",
-      variant: "destructive"
-    });
+  const handleDeleteLead = async (id: number) => {
+    try {
+      await leadService.deleteLead(id);
+      
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      
+      toast({
+        title: "Lead deleted",
+        description: "Lead has been removed successfully.",
+      });
+    } catch (error) {
+      console.error("Error deleting lead:", error);
+      toast({
+        title: "Error deleting lead",
+        description: "There was a problem deleting the lead.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleBulkUpdate = (field: string, value: string) => {
+  const handleBulkUpdate = async (field: string, value: string) => {
     if (selectedLeads.length === 0) {
       toast({
         title: "No leads selected",
@@ -180,23 +206,55 @@ const LeadTable = () => {
       return;
     }
 
-    const updatedLeads = leads.map(lead => {
-      if (selectedLeads.includes(lead.id)) {
-        return {
-          ...lead,
-          [field]: value
-        };
-      }
-      return lead;
-    });
-    
-    setLeads(updatedLeads);
-    
-    toast({
-      title: "Bulk update complete",
-      description: `Updated ${selectedLeads.length} leads.`,
-    });
+    try {
+      await leadService.bulkUpdateLeads(selectedLeads, field, value);
+      
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      
+      toast({
+        title: "Bulk update complete",
+        description: `Updated ${selectedLeads.length} leads.`,
+      });
+      
+      setSelectedLeads([]);
+    } catch (error) {
+      console.error("Error bulk updating leads:", error);
+      toast({
+        title: "Error updating leads",
+        description: "There was a problem updating the selected leads.",
+        variant: "destructive"
+      });
+    }
   };
+
+  // Sort leads 
+  const sortedLeads = [...leads].sort((a, b) => {
+    const aValue = a[sortField as keyof typeof a];
+    const bValue = b[sortField as keyof typeof b];
+    
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      return sortDirection === 'asc' 
+        ? aValue.localeCompare(bValue) 
+        : bValue.localeCompare(aValue);
+    }
+    
+    return sortDirection === 'asc' 
+      ? (aValue > bValue ? 1 : -1) 
+      : (bValue > aValue ? 1 : -1);
+  });
+
+  if (isError) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center">
+            <p className="text-red-500 mb-4">Error loading leads</p>
+            <Button onClick={() => refetch()}>Try Again</Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -250,176 +308,191 @@ const LeadTable = () => {
         </div>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[50px]">
-                <Checkbox 
-                  checked={selectedLeads.length === leads.length && leads.length > 0} 
-                  onCheckedChange={handleSelectAllLeads}
-                />
-              </TableHead>
-              <TableHead className="w-[80px] cursor-pointer" onClick={() => handleSort("id")}>
-                <div className="flex items-center">
-                  ID {getSortIcon("id")}
-                </div>
-              </TableHead>
-              <TableHead className="cursor-pointer" onClick={() => handleSort("name")}>
-                <div className="flex items-center">
-                  Name {getSortIcon("name")}
-                </div>
-              </TableHead>
-              <TableHead>Mobile</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Follow-up</TableHead>
-              <TableHead>Owner</TableHead>
-              <TableHead>Modified</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {leads.map((lead) => (
-              <TableRow key={lead.id}>
-                <TableCell>
+        {isLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-2">Loading leads...</span>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[50px]">
                   <Checkbox 
-                    checked={selectedLeads.includes(lead.id)} 
-                    onCheckedChange={() => handleSelectLead(lead.id)}
+                    checked={selectedLeads.length === leads.length && leads.length > 0} 
+                    onCheckedChange={handleSelectAllLeads}
                   />
-                </TableCell>
-                <TableCell className="font-medium">{lead.id}</TableCell>
-                
-                {editingLeadId === lead.id ? (
-                  <>
-                    <TableCell>
-                      <Input 
-                        type="text" 
-                        name="name" 
-                        value={editFormData.name}
-                        onChange={handleEditFormChange}
-                        className="h-8"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input 
-                        type="text" 
-                        name="mobile" 
-                        value={editFormData.mobile}
-                        onChange={handleEditFormChange}
-                        className="h-8"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input 
-                        type="text" 
-                        name="email" 
-                        value={editFormData.email}
-                        onChange={handleEditFormChange}
-                        className="h-8"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Select 
-                        value={editFormData.status}
-                        onValueChange={(value) => handleStatusChange(value, "status")}
-                      >
-                        <SelectTrigger className="h-8">
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {statusOptions.map(status => (
-                            <SelectItem key={status} value={status}>{status}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Select 
-                        value={editFormData.followup_status}
-                        onValueChange={(value) => handleStatusChange(value, "followup_status")}
-                      >
-                        <SelectTrigger className="h-8">
-                          <SelectValue placeholder="Select followup" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {followupOptions.map(option => (
-                            <SelectItem key={option} value={option}>{option}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>{lead.owner}</TableCell>
-                    <TableCell>{lead.modified_date}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEditSubmit()}
-                        >
-                          <Check size={16} className="text-green-600" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setEditingLeadId(null)}
-                        >
-                          <X size={16} className="text-red-600" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </>
-                ) : (
-                  <>
-                    <TableCell>{lead.name}</TableCell>
-                    <TableCell>{lead.mobile}</TableCell>
-                    <TableCell className="max-w-[180px] truncate">{lead.email}</TableCell>
-                    <TableCell>
-                      <Badge className={getStatusBadgeColor(lead.status)}>
-                        {lead.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getFollowupBadgeColor(lead.followup_status)}>
-                        {lead.followup_status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{lead.owner}</TableCell>
-                    <TableCell className="text-muted-foreground">{lead.modified_date}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => navigate(`/leads/${lead.id}`)}
-                          title="View Lead"
-                        >
-                          <Eye size={16} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEditClick(lead)}
-                          title="Edit Lead"
-                        >
-                          <Edit2 size={16} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteLead(lead.id)}
-                          title="Delete Lead"
-                        >
-                          <Trash2 size={16} className="text-red-500" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </>
-                )}
+                </TableHead>
+                <TableHead className="w-[80px] cursor-pointer" onClick={() => handleSort("id")}>
+                  <div className="flex items-center">
+                    ID {getSortIcon("id")}
+                  </div>
+                </TableHead>
+                <TableHead className="cursor-pointer" onClick={() => handleSort("name")}>
+                  <div className="flex items-center">
+                    Name {getSortIcon("name")}
+                  </div>
+                </TableHead>
+                <TableHead>Mobile</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Follow-up</TableHead>
+                <TableHead>Owner</TableHead>
+                <TableHead>Modified</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {sortedLeads.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={10} className="text-center py-8">
+                    No leads found. Add your first lead to get started.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                sortedLeads.map((lead) => (
+                  <TableRow key={lead.id}>
+                    <TableCell>
+                      <Checkbox 
+                        checked={selectedLeads.includes(lead.id)} 
+                        onCheckedChange={() => handleSelectLead(lead.id)}
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium">{lead.id}</TableCell>
+                    
+                    {editingLeadId === lead.id ? (
+                      <>
+                        <TableCell>
+                          <Input 
+                            type="text" 
+                            name="name" 
+                            value={editFormData.name}
+                            onChange={handleEditFormChange}
+                            className="h-8"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input 
+                            type="text" 
+                            name="mobile" 
+                            value={editFormData.mobile}
+                            onChange={handleEditFormChange}
+                            className="h-8"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input 
+                            type="text" 
+                            name="email" 
+                            value={editFormData.email}
+                            onChange={handleEditFormChange}
+                            className="h-8"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Select 
+                            value={editFormData.status}
+                            onValueChange={(value) => handleStatusChange(value, "status")}
+                          >
+                            <SelectTrigger className="h-8">
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {statusOptions.map(status => (
+                                <SelectItem key={status} value={status}>{status}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Select 
+                            value={editFormData.followup_status}
+                            onValueChange={(value) => handleStatusChange(value, "followup_status")}
+                          >
+                            <SelectTrigger className="h-8">
+                              <SelectValue placeholder="Select followup" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {followupOptions.map(option => (
+                                <SelectItem key={option} value={option}>{option}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>{lead.owner}</TableCell>
+                        <TableCell>{lead.modified_date}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditSubmit()}
+                            >
+                              <Check size={16} className="text-green-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setEditingLeadId(null)}
+                            >
+                              <X size={16} className="text-red-600" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </>
+                    ) : (
+                      <>
+                        <TableCell>{lead.name}</TableCell>
+                        <TableCell>{lead.mobile}</TableCell>
+                        <TableCell className="max-w-[180px] truncate">{lead.email}</TableCell>
+                        <TableCell>
+                          <Badge className={getStatusBadgeColor(lead.status)}>
+                            {lead.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getFollowupBadgeColor(lead.followup_status)}>
+                            {lead.followup_status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{lead.owner}</TableCell>
+                        <TableCell className="text-muted-foreground">{lead.modified_date}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => navigate(`/leads/${lead.id}`)}
+                              title="View Lead"
+                            >
+                              <Eye size={16} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditClick(lead)}
+                              title="Edit Lead"
+                            >
+                              <Edit2 size={16} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteLead(lead.id)}
+                              title="Delete Lead"
+                            >
+                              <Trash2 size={16} className="text-red-500" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </>
+                    )}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   );

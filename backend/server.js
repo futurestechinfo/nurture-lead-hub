@@ -4,6 +4,7 @@ const cors = require('cors');
 const { testConnection } = require('./db/config');
 const authRoutes = require('./routes/auth');
 const leadsRoutes = require('./routes/leads');
+const commentsRoutes = require('./routes/comments');
 
 // Initialize express app
 const app = express();
@@ -19,6 +20,7 @@ testConnection();
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/leads', leadsRoutes);
+app.use('/api', commentsRoutes); // Add comments routes
 
 // Default route
 app.get('/', (req, res) => {
