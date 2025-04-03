@@ -61,4 +61,30 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Middleware to validate JWT token
+const validateToken = (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+    
+    const token = authHeader.split(' ')[1]; // Bearer <token>
+    
+    if (!token) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    req.user = decoded;
+    
+    next();
+  } catch (error) {
+    console.error('Token validation error:', error);
+    return res.status(401).json({ message: 'Invalid token' });
+  }
+};
+
 module.exports = router;
+module.exports.validateToken = validateToken;
