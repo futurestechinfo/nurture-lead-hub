@@ -33,9 +33,21 @@ const Sidebar = () => {
     >
       <div className="flex items-center justify-between p-4 border-b">
         {expanded ? (
-          <h1 className="text-xl font-bold text-primary">LeadHub</h1>
+          <div className="flex items-center">
+            <img 
+              src="/lovable-uploads/608b7542-65c4-4ecd-bfc9-f131bcf8719a.png" 
+              alt="Futures Tech" 
+              className="h-10" 
+            />
+          </div>
         ) : (
-          <h1 className="text-xl font-bold text-primary">LH</h1>
+          <div className="flex justify-center w-full">
+            <img 
+              src="/lovable-uploads/608b7542-65c4-4ecd-bfc9-f131bcf8719a.png" 
+              alt="Futures Tech" 
+              className="h-8" 
+            />
+          </div>
         )}
         <button onClick={toggleSidebar} className="p-2 rounded-md hover:bg-gray-100">
           {expanded ? <X size={20} /> : <Menu size={20} />}
@@ -49,7 +61,7 @@ const Sidebar = () => {
                 onClick={() => navigate(item.path)}
                 className="w-full flex items-center p-3 rounded-md hover:bg-gray-100 transition-colors"
               >
-                <item.icon className="text-primary" size={20} />
+                <item.icon className="text-[#FF6B00]" size={20} />
                 {expanded && <span className="ml-3">{item.name}</span>}
               </button>
             </li>

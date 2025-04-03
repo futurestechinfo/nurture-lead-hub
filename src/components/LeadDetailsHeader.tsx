@@ -6,20 +6,51 @@ import {
   Calendar, 
   Mail, 
   Phone, 
-  User
+  User,
+  Send
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { mockLeads } from "@/data/mockData";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { leadService } from "@/services/api";
 import { Loader2 } from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { Switch } from "@/components/ui/switch";
+
+// Add email service to the API services
+const emailService = {
+  sendLeadInterestEmail: async (leadData: any) => {
+    try {
+      const response = await fetch("http://localhost:8000/api/leads/interest-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify(leadData)
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to send email");
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error sending interest email:', error);
+      throw error;
+    }
+  }
+};
 
 const LeadDetailsHeader = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [interested, setInterested] = useState(false);
   
   // Fetch lead data from API if available, otherwise use mock data
   const { data: apiLead, isLoading } = useQuery({
@@ -35,6 +66,35 @@ const LeadDetailsHeader = () => {
   
   // Use API data if available, otherwise fall back to mock data
   const lead = apiLead || mockLead;
+
+  // Mutation for sending interest email
+  const sendEmailMutation = useMutation({
+    mutationFn: (leadData: any) => {
+      return emailService.sendLeadInterestEmail(leadData);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Email Sent",
+        description: "Interest notification email has been sent successfully.",
+      });
+    },
+    onError: (error) => {
+      console.error("Error sending email:", error);
+      toast({
+        title: "Email Failed",
+        description: "Failed to send interest notification email. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleInterestToggle = (checked: boolean) => {
+    setInterested(checked);
+    
+    if (checked && lead) {
+      sendEmailMutation.mutate(lead);
+    }
+  };
   
   if (isLoading) {
     return (
@@ -108,7 +168,7 @@ const LeadDetailsHeader = () => {
               <Calendar size={16} className="mr-2" />
               Schedule Follow-up
             </Button>
-            <Button className="rounded-full bg-blue-500 hover:bg-blue-600">
+            <Button className="rounded-full bg-[#FF6B00] hover:bg-[#E45A00]">
               <Edit2 size={16} className="mr-2" />
               Edit Lead
             </Button>
@@ -117,7 +177,7 @@ const LeadDetailsHeader = () => {
         
         <div className="flex items-start">
           <div className="flex-shrink-0 mr-6">
-            <Avatar className="h-24 w-24 bg-blue-500 text-white">
+            <Avatar className="h-24 w-24 bg-[#FF6B00] text-white">
               <AvatarFallback className="text-2xl">
                 {getInitials(lead.name)}
               </AvatarFallback>
@@ -148,6 +208,31 @@ const LeadDetailsHeader = () => {
                 <Calendar size={18} className="text-gray-400 mr-3" />
                 <p>Modified: {lead.modified_date}</p>
               </div>
+            </div>
+            
+            <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Send className="text-[#002855]" size={18} />
+                  <span className="font-medium">Mark as Interested</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch 
+                    checked={interested}
+                    onCheckedChange={handleInterestToggle}
+                    disabled={sendEmailMutation.isPending}
+                  />
+                  <span className="text-sm text-gray-500">
+                    {interested ? "Interested" : "Not Interested"}
+                  </span>
+                  {sendEmailMutation.isPending && (
+                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                  )}
+                </div>
+              </div>
+              <p className="mt-2 text-sm text-gray-500">
+                When marked as interested, an email with lead details will be sent to the sales team.
+              </p>
             </div>
           </div>
         </div>
