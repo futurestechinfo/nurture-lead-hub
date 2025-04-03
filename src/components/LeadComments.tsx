@@ -2,47 +2,47 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import api from "@/services/api";
+
+// Get API URL from the central service
 import { leadService } from "@/services/api";
-import axios from "axios";
 
-// Create a comments service
-const API_URL = 'http://localhost:8000/api';
-
+// Create a comments service using the same API instance
 const commentsService = {
   getComments: async (leadId: string) => {
-    const response = await axios.get(`${API_URL}/leads/${leadId}/comments`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('authToken')}`
-      }
-    });
-    return response.data;
+    try {
+      const response = await api.get(`/leads/${leadId}/comments`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      throw error;
+    }
   },
   
   addComment: async (leadId: string, content: string) => {
-    const response = await axios.post(
-      `${API_URL}/leads/${leadId}/comments`, 
-      { content },
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('authToken')}`
-        }
-      }
-    );
-    return response.data;
+    try {
+      const response = await api.post(
+        `/leads/${leadId}/comments`, 
+        { content }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      throw error;
+    }
   }
 };
 
 const LeadComments = () => {
   const { id } = useParams<{ id: string }>();
   const [newComment, setNewComment] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -50,20 +50,19 @@ const LeadComments = () => {
   const username = localStorage.getItem('username') || 'User';
   
   // Fetch comments for this lead
-  const { data: comments = [], isLoading, isError } = useQuery({
+  const { data: comments = [], isLoading, isError, error } = useQuery({
     queryKey: ['leadComments', id],
     queryFn: () => id ? commentsService.getComments(id) : Promise.resolve([]),
     enabled: !!id
   });
   
-  const handleAddComment = async () => {
-    if (!newComment.trim() || !id) return;
-    
-    setIsSubmitting(true);
-    
-    try {
-      await commentsService.addComment(id, newComment);
-      
+  // Use mutation for adding comments
+  const mutation = useMutation({
+    mutationFn: (content: string) => {
+      if (!id) throw new Error("Lead ID is required");
+      return commentsService.addComment(id, content);
+    },
+    onSuccess: () => {
       // Invalidate and refetch comments
       queryClient.invalidateQueries({ queryKey: ['leadComments', id] });
       
@@ -74,7 +73,8 @@ const LeadComments = () => {
         title: "Comment added",
         description: "Your comment was added successfully.",
       });
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error("Error adding comment:", error);
       
       toast({
@@ -82,9 +82,12 @@ const LeadComments = () => {
         description: "There was a problem adding your comment. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
     }
+  });
+
+  const handleAddComment = () => {
+    if (!newComment.trim() || !id) return;
+    mutation.mutate(newComment);
   };
 
   const getInitials = (name: string) => {
@@ -110,8 +113,11 @@ const LeadComments = () => {
     return (
       <Card>
         <CardContent className="p-6">
-          <p className="text-center text-red-500">
+          <p className="text-center text-red-500 py-4">
             Error loading comments. Please try again later.
+          </p>
+          <p className="text-center text-gray-500 text-sm">
+            {error instanceof Error ? error.message : 'Unknown error occurred'}
           </p>
         </CardContent>
       </Card>
@@ -134,14 +140,14 @@ const LeadComments = () => {
               className="resize-none mb-2 border-gray-300 focus:border-blue-400"
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              disabled={isSubmitting}
+              disabled={mutation.isPending}
             />
             <Button 
               onClick={handleAddComment} 
-              disabled={!newComment.trim() || isSubmitting}
-              className="rounded-full bg-blue-400 hover:bg-blue-500"
+              disabled={!newComment.trim() || mutation.isPending}
+              className="rounded-full bg-blue-500 hover:bg-blue-600"
             >
-              {isSubmitting ? (
+              {mutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Adding...
