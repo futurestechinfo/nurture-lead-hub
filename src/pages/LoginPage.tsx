@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,11 @@ const LoginPage = () => {
         });
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || "A server error occurred. Please try again.";
+      const errorMessage = 
+        error.response?.status === 404 
+          ? "Login API endpoint not found. Please check your server configuration."
+          : error.response?.data?.message || "A server error occurred. Please try again.";
+          
       toast.error("Login failed", {
         description: errorMessage
       });

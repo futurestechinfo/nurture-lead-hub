@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // Base API URL - change this to your actual backend URL
-const API_URL = 'http://localhost:8000/api';
+const API_URL = 'http://localhost:8000';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -25,7 +25,7 @@ api.interceptors.request.use((config) => {
 export const authService = {
   login: async (username: string, password: string) => {
     try {
-      const response = await api.post('/auth/login', { username, password });
+      const response = await api.post('/api/auth/login', { username, password });
       return response.data;
     } catch (error) {
       console.error('Login error:', error);
@@ -40,7 +40,7 @@ export const authService = {
 export const leadService = {
   getLeads: async () => {
     try {
-      const response = await api.get('/leads');
+      const response = await api.get('/api/leads');
       return response.data;
     } catch (error) {
       console.error('Get leads error:', error);
@@ -50,7 +50,7 @@ export const leadService = {
   
   getLeadById: async (id: number) => {
     try {
-      const response = await api.get(`/leads/${id}`);
+      const response = await api.get(`/api/leads/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Get lead ${id} error:`, error);
@@ -60,7 +60,7 @@ export const leadService = {
   
   createLead: async (leadData: any) => {
     try {
-      const response = await api.post('/leads', leadData);
+      const response = await api.post('/api/leads', leadData);
       return response.data;
     } catch (error) {
       console.error('Create lead error:', error);
@@ -70,7 +70,7 @@ export const leadService = {
   
   updateLead: async (id: number, leadData: any) => {
     try {
-      const response = await api.put(`/leads/${id}`, leadData);
+      const response = await api.put(`/api/leads/${id}`, leadData);
       return response.data;
     } catch (error) {
       console.error(`Update lead ${id} error:`, error);
@@ -80,7 +80,7 @@ export const leadService = {
   
   deleteLead: async (id: number) => {
     try {
-      const response = await api.delete(`/leads/${id}`);
+      const response = await api.delete(`/api/leads/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Delete lead ${id} error:`, error);
@@ -90,7 +90,7 @@ export const leadService = {
   
   bulkUpdateLeads: async (ids: number[], field: string, value: string) => {
     try {
-      const response = await api.put('/leads/bulk/update', { ids, field, value });
+      const response = await api.put('/api/leads/bulk/update', { ids, field, value });
       return response.data;
     } catch (error) {
       console.error('Bulk update leads error:', error);
@@ -100,7 +100,7 @@ export const leadService = {
   
   updateLeadInterest: async (leadId: number, interested: boolean) => {
     try {
-      const response = await api.post('/interest-email', { leadId, interested });
+      const response = await api.post('/api/interest-email', { leadId, interested });
       return response.data;
     } catch (error) {
       console.error('Update lead interest error:', error);
@@ -113,7 +113,7 @@ export const leadService = {
 export const commentService = {
   getComments: async (leadId: number) => {
     try {
-      const response = await api.get(`/comments/${leadId}`);
+      const response = await api.get(`/api/comments/${leadId}`);
       return response.data;
     } catch (error) {
       console.error('Get comments error:', error);
@@ -123,7 +123,7 @@ export const commentService = {
   
   addComment: async (leadId: number, comment: string) => {
     try {
-      const response = await api.post('/comments', { leadId, comment });
+      const response = await api.post('/api/comments', { leadId, comment });
       return response.data;
     } catch (error) {
       console.error('Add comment error:', error);

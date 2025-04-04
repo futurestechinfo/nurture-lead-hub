@@ -1,3 +1,4 @@
+
 const express = require('express');
 const cors = require('cors');
 const { pool } = require('./db/config');
@@ -28,10 +29,10 @@ const commentsRoutes = require('./routes/comments');
 const interestEmailRoutes = require('./routes/interest-email');
 
 // Use routes
-app.use('/api', authRoutes);
-app.use('/api', leadsRoutes);
-app.use('/api', commentsRoutes);
-app.use('/api', interestEmailRoutes);
+app.use('/api/auth', authRoutes);  // Updated path to match the frontend expectation
+app.use('/api/leads', leadsRoutes);
+app.use('/api/comments', commentsRoutes);
+app.use('/api/interest-email', interestEmailRoutes);
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
