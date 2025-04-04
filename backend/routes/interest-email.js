@@ -1,72 +1,79 @@
 
 const express = require('express');
 const router = express.Router();
-const { validateToken } = require('./auth');
 const nodemailer = require('nodemailer');
+const { pool } = require('../db/config');
+const { validateToken } = require('./auth');
 
-// Middleware to validate JWT token
-router.use(validateToken);
-
-// Configure nodemailer with test account
-// In production, use actual email service details
+// Configure email transport
 const transporter = nodemailer.createTransport({
-  host: 'smtp.ethereal.email',
-  port: 587,
-  secure: false, // true for 465, false for other ports
+  host: process.env.EMAIL_HOST || 'smtp.ethereal.email',
+  port: process.env.EMAIL_PORT || 587,
+  secure: process.env.EMAIL_SECURE === 'true',
   auth: {
-    user: 'testuser@example.com', // replace with actual email
-    pass: 'testpassword' // replace with actual password
+    user: process.env.EMAIL_USER || 'your-email@example.com',
+    pass: process.env.EMAIL_PASSWORD || 'your-password'
   }
 });
 
-// Send lead interest email
-router.post('/leads/interest-email', async (req, res) => {
+// Middleware to validate token
+router.use(validateToken);
+
+// Send interest email
+router.post('/interest-email', async (req, res) => {
+  const { leadId, interested } = req.body;
+  
+  if (!leadId) {
+    return res.status(400).json({ message: 'Lead ID is required' });
+  }
+  
   try {
-    const leadData = req.body;
+    // Get lead details
+    const [lead] = await pool.query('SELECT * FROM leads WHERE id = ?', [leadId]);
     
-    if (!leadData) {
-      return res.status(400).json({ message: 'Lead data is required' });
+    if (lead.length === 0) {
+      return res.status(404).json({ message: 'Lead not found' });
     }
     
-    // Email content formatting
-    const emailContent = `
-      <h2>New Interested Lead</h2>
-      <p>A lead has been marked as interested and requires follow-up.</p>
+    const leadData = lead[0];
+    
+    // Update lead interest status in database
+    await pool.query(
+      'UPDATE leads SET interested = ? WHERE id = ?',
+      [interested ? 1 : 0, leadId]
+    );
+    
+    if (interested) {
+      // Send email with lead details
+      const mailOptions = {
+        from: process.env.EMAIL_FROM || 'notifications@futurestechnologia.com',
+        to: process.env.NOTIFICATION_EMAIL || 'admin@futurestechnologia.com',
+        subject: 'New Interested Lead',
+        html: `
+          <h1>New Interested Lead</h1>
+          <p>A lead has expressed interest:</p>
+          <ul>
+            <li><strong>Name:</strong> ${leadData.name}</li>
+            <li><strong>Email:</strong> ${leadData.email}</li>
+            <li><strong>Mobile:</strong> ${leadData.mobile}</li>
+            <li><strong>Status:</strong> ${leadData.status}</li>
+            <li><strong>Follow-up Status:</strong> ${leadData.followup_status}</li>
+            <li><strong>Owner:</strong> ${leadData.owner}</li>
+            <li><strong>Created Date:</strong> ${new Date(leadData.created_date).toLocaleString()}</li>
+          </ul>
+        `
+      };
       
-      <h3>Lead Details:</h3>
-      <ul>
-        <li><strong>Name:</strong> ${leadData.name}</li>
-        <li><strong>Email:</strong> ${leadData.email}</li>
-        <li><strong>Phone:</strong> ${leadData.mobile}</li>
-        <li><strong>Status:</strong> ${leadData.status}</li>
-        <li><strong>Lead ID:</strong> ${leadData.id}</li>
-        <li><strong>Owner:</strong> ${leadData.owner}</li>
-      </ul>
-      
-      <p>Please contact this lead as soon as possible.</p>
-      <p>This is an automated message from the LeadHub CRM system.</p>
-    `;
-    
-    // Email options
-    const mailOptions = {
-      from: '"LeadHub CRM" <crm@futures-tech.com>',
-      to: 'sales@futures-tech.com', // Replace with actual recipient
-      subject: `New Interested Lead: ${leadData.name}`,
-      html: emailContent
-    };
-    
-    // Send email
-    const info = await transporter.sendMail(mailOptions);
-    
-    console.log('Email sent:', info.messageId);
+      await transporter.sendMail(mailOptions);
+    }
     
     res.json({ 
-      message: 'Interest email sent successfully',
-      messageId: info.messageId
+      success: true, 
+      message: interested ? 'Interest confirmed and email sent' : 'Interest status updated' 
     });
   } catch (error) {
-    console.error('Error sending interest email:', error);
-    res.status(500).json({ message: 'Failed to send interest email' });
+    console.error('Error processing interest email:', error);
+    res.status(500).json({ message: 'Failed to process interest' });
   }
 });
 

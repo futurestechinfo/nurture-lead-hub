@@ -6,9 +6,14 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 
-const Header = () => {
+interface HeaderProps {
+  onSearch?: (query: string) => void;
+}
+
+const Header = ({ onSearch }: HeaderProps) => {
   const navigate = useNavigate();
   const [username, setUsername] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   useEffect(() => {
     // Get the logged-in username from localStorage
@@ -25,6 +30,14 @@ const Header = () => {
     navigate("/login");
   };
 
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    if (onSearch) {
+      onSearch(value);
+    }
+  };
+
   return (
     <header className="w-full h-16 bg-white border-b px-4 flex items-center justify-between">
       <div className="flex items-center w-full max-w-md">
@@ -34,6 +47,8 @@ const Header = () => {
             type="text" 
             placeholder="Search leads..." 
             className="pl-10 w-full"
+            value={searchQuery}
+            onChange={handleSearch}
           />
         </div>
       </div>

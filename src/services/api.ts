@@ -96,6 +96,39 @@ export const leadService = {
       console.error('Bulk update leads error:', error);
       throw error;
     }
+  },
+  
+  updateLeadInterest: async (leadId: number, interested: boolean) => {
+    try {
+      const response = await api.post('/interest-email', { leadId, interested });
+      return response.data;
+    } catch (error) {
+      console.error('Update lead interest error:', error);
+      throw error;
+    }
+  }
+};
+
+// Comments Services
+export const commentService = {
+  getComments: async (leadId: number) => {
+    try {
+      const response = await api.get(`/comments/${leadId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get comments error:', error);
+      throw error;
+    }
+  },
+  
+  addComment: async (leadId: number, comment: string) => {
+    try {
+      const response = await api.post('/comments', { leadId, comment });
+      return response.data;
+    } catch (error) {
+      console.error('Add comment error:', error);
+      throw error;
+    }
   }
 };
 
