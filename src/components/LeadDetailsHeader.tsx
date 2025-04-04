@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, 
@@ -54,16 +55,30 @@ const LeadDetailsHeader = () => {
     },
     onError: (error: any) => {
       console.error("Error sending email:", error);
-      const errorMessage = 
-        error.response?.status === 404 
-          ? "Interest email API endpoint not found. Please check your configuration."
-          : error.response?.data?.message || "Failed to send interest notification email.";
+      let errorMessage = "Failed to send interest notification email.";
+      
+      // Handle different error types
+      if (error.response) {
+        if (error.response.status === 404) {
+          errorMessage = "Interest email API endpoint not found. Please check your configuration.";
+        } else if (error.response.status === 500) {
+          errorMessage = "Server error while sending notification. The server might be down or misconfigured.";
+        } else if (error.response.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error.request) {
+        // Request was made but no response received
+        errorMessage = "No response received from the server. Please check your internet connection.";
+      }
           
       toast({
         title: "Email Failed",
         description: errorMessage,
         variant: "destructive",
       });
+      
+      // Reset the switch to its previous state on error
+      setInterested(false);
     }
   });
 
@@ -158,66 +173,97 @@ const LeadDetailsHeader = () => {
           <div className="flex-shrink-0 mr-6">
             <Avatar className="h-24 w-24 bg-[#FF6B00] text-white">
               <AvatarFallback className="text-2xl">
-                {getInitials(lead.name)}
+                {getInitials(lead?.name || '')}
               </AvatarFallback>
             </Avatar>
-            <Badge className={`${getStatusColor(lead.status)} mt-3 mx-auto`}>
-              {lead.status}
-            </Badge>
+            {lead && (
+              <Badge className={`${getStatusColor(lead.status)} mt-3 mx-auto`}>
+                {lead.status}
+              </Badge>
+            )}
           </div>
           
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold">{lead.name}</h2>
-            <p className="text-gray-500 mb-4">Lead #{lead.id}</p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4">
-              <div className="flex items-center">
-                <Phone size={18} className="text-gray-400 mr-3" />
-                <p>{lead.mobile}</p>
-              </div>
-              <div className="flex items-center">
-                <Mail size={18} className="text-gray-400 mr-3" />
-                <p>{lead.email}</p>
-              </div>
-              <div className="flex items-center">
-                <User size={18} className="text-gray-400 mr-3" />
-                <p>Owner: {lead.owner}</p>
-              </div>
-              <div className="flex items-center">
-                <Calendar size={18} className="text-gray-400 mr-3" />
-                <p>Modified: {lead.modified_date}</p>
-              </div>
-            </div>
-            
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Send className="text-[#002855]" size={18} />
-                  <span className="font-medium">Mark as Interested</span>
+          {lead && (
+            <div className="flex-1">
+              <h2 className="text-2xl font-bold">{lead.name}</h2>
+              <p className="text-gray-500 mb-4">Lead #{lead.id}</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4">
+                <div className="flex items-center">
+                  <Phone size={18} className="text-gray-400 mr-3" />
+                  <p>{lead.mobile}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Switch 
-                    checked={interested}
-                    onCheckedChange={handleInterestToggle}
-                    disabled={sendEmailMutation.isPending}
-                  />
-                  <span className="text-sm text-gray-500">
-                    {interested ? "Interested" : "Not Interested"}
-                  </span>
-                  {sendEmailMutation.isPending && (
-                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                  )}
+                <div className="flex items-center">
+                  <Mail size={18} className="text-gray-400 mr-3" />
+                  <p>{lead.email}</p>
+                </div>
+                <div className="flex items-center">
+                  <User size={18} className="text-gray-400 mr-3" />
+                  <p>Owner: {lead.owner}</p>
+                </div>
+                <div className="flex items-center">
+                  <Calendar size={18} className="text-gray-400 mr-3" />
+                  <p>Modified: {lead.modified_date}</p>
                 </div>
               </div>
-              <p className="mt-2 text-sm text-gray-500">
-                When marked as interested, an email with lead details will be sent to the sales team.
-              </p>
+              
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <Send className="text-[#002855]" size={18} />
+                    <span className="font-medium">Mark as Interested</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch 
+                      checked={interested}
+                      onCheckedChange={handleInterestToggle}
+                      disabled={sendEmailMutation.isPending}
+                    />
+                    <span className="text-sm text-gray-500">
+                      {interested ? "Interested" : "Not Interested"}
+                    </span>
+                    {sendEmailMutation.isPending && (
+                      <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                    )}
+                  </div>
+                </div>
+                <p className="mt-2 text-sm text-gray-500">
+                  When marked as interested, an email with lead details will be sent to the sales team.
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </CardContent>
     </Card>
   );
+};
+
+// Utility function to get initials from name
+const getInitials = (name: string) => {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
+};
+
+// Utility function to determine status badge color
+const getStatusColor = (status: string) => {
+  switch (status.toLowerCase()) {
+    case "new":
+      return "bg-blue-100 text-blue-800";
+    case "contacted":
+      return "bg-purple-100 text-purple-800";
+    case "qualified":
+      return "bg-amber-100 text-amber-800";
+    case "converted":
+      return "bg-green-100 text-green-800";
+    case "closed":
+      return "bg-red-100 text-red-800";
+    default:
+      return "bg-gray-100 text-gray-800";
+  }
 };
 
 export default LeadDetailsHeader;

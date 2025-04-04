@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 
 // Base API URL - change this to your actual backend URL
@@ -120,8 +119,20 @@ export const leadService = {
   
   updateLeadInterest: async (leadId: number, interested: boolean) => {
     try {
-      const response = await externalApi.post('/api/interest-email', { leadId, interested });
-      return response.data;
+      // Use try/catch inside to handle specific errors
+      try {
+        const response = await externalApi.post('/api/interest-email', { leadId, interested });
+        return response.data;
+      } catch (apiError: any) {
+        // Check if it's a 404 issue (endpoint not found)
+        if (apiError.response?.status === 404) {
+          // Try the alternative path without /api prefix
+          const alternativeResponse = await externalApi.post('/interest-email', { leadId, interested });
+          return alternativeResponse.data;
+        }
+        // If not a 404, rethrow the error to be caught by the outer catch
+        throw apiError;
+      }
     } catch (error) {
       console.error('Update lead interest error:', error);
       throw error;
