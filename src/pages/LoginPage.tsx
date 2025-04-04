@@ -61,9 +61,9 @@ const LoginPage = () => {
         <CardHeader className="space-y-4">
           <div className="flex justify-center">
             <img 
-              src="/lovable-uploads/20704a4f-2fa8-44ae-8e4f-c23a0d1d04df.png" 
+              src="/lovable-uploads/b9b8632f-7a38-427f-ab12-70028d8917a7.png" 
               alt="Futures Tech Logo"
-              className="h-16" 
+              className="h-20" 
             />
           </div>
           <CardTitle className="text-2xl font-bold text-center text-[#002855]">Lead Management</CardTitle>
