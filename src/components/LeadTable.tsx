@@ -42,8 +42,13 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
+import { useLeadSearch } from "@/hooks/useLeadSearch";
 
-const LeadTable = () => {
+interface LeadTableProps {
+  searchQuery?: string;
+}
+
+const LeadTable = ({ searchQuery = "" }: LeadTableProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -67,6 +72,9 @@ const LeadTable = () => {
     queryKey: ['leads'],
     queryFn: leadService.getLeads,
   });
+  
+  // Use custom hook for searching leads
+  const { filteredLeads } = useLeadSearch(leads, searchQuery);
   
   // Reset selected leads when leads change
   useEffect(() => {
@@ -228,7 +236,7 @@ const LeadTable = () => {
   };
 
   // Sort leads 
-  const sortedLeads = [...leads].sort((a, b) => {
+  const sortedLeads = [...filteredLeads].sort((a, b) => {
     const aValue = a[sortField as keyof typeof a];
     const bValue = b[sortField as keyof typeof b];
     
@@ -319,7 +327,7 @@ const LeadTable = () => {
               <TableRow>
                 <TableHead className="w-[50px]">
                   <Checkbox 
-                    checked={selectedLeads.length === leads.length && leads.length > 0} 
+                    checked={selectedLeads.length === filteredLeads.length && filteredLeads.length > 0} 
                     onCheckedChange={handleSelectAllLeads}
                   />
                 </TableHead>
