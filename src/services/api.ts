@@ -4,6 +4,9 @@ import axios from 'axios';
 // Base API URL - change this to your actual backend URL
 const API_URL = 'http://localhost:8000';
 
+// External API URL for specific endpoints
+const EXTERNAL_API_URL = 'https://api.futurestech.in';
+
 // Create axios instance with default config
 const api = axios.create({
   baseURL: API_URL,
@@ -14,6 +17,23 @@ const api = axios.create({
 
 // Add authentication token to requests if available
 api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Create a separate axios instance for external API
+const externalApi = axios.create({
+  baseURL: EXTERNAL_API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add authentication token to external requests if available
+externalApi.interceptors.request.use((config) => {
   const token = localStorage.getItem('authToken');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -100,7 +120,7 @@ export const leadService = {
   
   updateLeadInterest: async (leadId: number, interested: boolean) => {
     try {
-      const response = await api.post('/api/interest-email', { leadId, interested });
+      const response = await externalApi.post('/api/interest-email', { leadId, interested });
       return response.data;
     } catch (error) {
       console.error('Update lead interest error:', error);

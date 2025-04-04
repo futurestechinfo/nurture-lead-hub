@@ -52,11 +52,16 @@ const LeadDetailsHeader = () => {
         description: "Interest notification email has been sent successfully.",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Error sending email:", error);
+      const errorMessage = 
+        error.response?.status === 404 
+          ? "Interest email API endpoint not found. Please check your configuration."
+          : error.response?.data?.message || "Failed to send interest notification email.";
+          
       toast({
         title: "Email Failed",
-        description: "Failed to send interest notification email. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
