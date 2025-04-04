@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, 
@@ -20,31 +19,6 @@ import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
-
-// Add email service to the API services
-const emailService = {
-  sendLeadInterestEmail: async (leadData: any) => {
-    try {
-      const response = await fetch("http://localhost:8000/api/leads/interest-email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem('authToken')}`
-        },
-        body: JSON.stringify(leadData)
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to send email");
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Error sending interest email:', error);
-      throw error;
-    }
-  }
-};
 
 const LeadDetailsHeader = () => {
   const { id } = useParams<{ id: string }>();
@@ -69,8 +43,8 @@ const LeadDetailsHeader = () => {
 
   // Mutation for sending interest email
   const sendEmailMutation = useMutation({
-    mutationFn: (leadData: any) => {
-      return emailService.sendLeadInterestEmail(leadData);
+    mutationFn: (data: { leadId: number, interested: boolean }) => {
+      return leadService.updateLeadInterest(data.leadId, data.interested);
     },
     onSuccess: () => {
       toast({
@@ -91,8 +65,8 @@ const LeadDetailsHeader = () => {
   const handleInterestToggle = (checked: boolean) => {
     setInterested(checked);
     
-    if (checked && lead) {
-      sendEmailMutation.mutate(lead);
+    if (checked && lead && id) {
+      sendEmailMutation.mutate({ leadId: Number(id), interested: checked });
     }
   };
   

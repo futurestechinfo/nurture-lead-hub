@@ -20,7 +20,7 @@ const transporter = nodemailer.createTransport({
 router.use(validateToken);
 
 // Send interest email
-router.post('/interest-email', async (req, res) => {
+router.post('/', async (req, res) => {
   const { leadId, interested } = req.body;
   
   if (!leadId) {

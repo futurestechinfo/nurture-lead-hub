@@ -58,8 +58,15 @@ const LoginPage = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Lead Management</CardTitle>
+        <CardHeader className="space-y-4">
+          <div className="flex justify-center">
+            <img 
+              src="/lovable-uploads/20704a4f-2fa8-44ae-8e4f-c23a0d1d04df.png" 
+              alt="Futures Tech Logo"
+              className="h-16" 
+            />
+          </div>
+          <CardTitle className="text-2xl font-bold text-center text-[#002855]">Lead Management</CardTitle>
           <CardDescription className="text-center">
             Enter your credentials to access the admin panel
           </CardDescription>
@@ -98,7 +105,11 @@ const LoginPage = () => {
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button 
+              type="submit" 
+              className="w-full bg-[#FF6B00] hover:bg-[#E45A00]" 
+              disabled={isLoading}
+            >
               {isLoading ? "Logging in..." : "Login"}
             </Button>
           </CardFooter>

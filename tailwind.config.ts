@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,7 +62,10 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				// Futures Tech brand colors
+				'futures-orange': '#FF6B00',
+				'futures-blue': '#002855',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

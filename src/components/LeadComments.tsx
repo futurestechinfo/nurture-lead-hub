@@ -9,36 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-import api from "@/services/api";
-
-// Get API URL from the central service
-import { leadService } from "@/services/api";
-
-// Create a comments service using the same API instance
-const commentsService = {
-  getComments: async (leadId: string) => {
-    try {
-      const response = await api.get(`/leads/${leadId}/comments`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching comments:', error);
-      throw error;
-    }
-  },
-  
-  addComment: async (leadId: string, content: string) => {
-    try {
-      const response = await api.post(
-        `/leads/${leadId}/comments`, 
-        { content }
-      );
-      return response.data;
-    } catch (error) {
-      console.error('Error adding comment:', error);
-      throw error;
-    }
-  }
-};
+import { commentService } from "@/services/api";
 
 const LeadComments = () => {
   const { id } = useParams<{ id: string }>();
@@ -52,7 +23,7 @@ const LeadComments = () => {
   // Fetch comments for this lead
   const { data: comments = [], isLoading, isError, error } = useQuery({
     queryKey: ['leadComments', id],
-    queryFn: () => id ? commentsService.getComments(id) : Promise.resolve([]),
+    queryFn: () => id ? commentService.getComments(Number(id)) : Promise.resolve([]),
     enabled: !!id
   });
   
@@ -60,7 +31,7 @@ const LeadComments = () => {
   const mutation = useMutation({
     mutationFn: (content: string) => {
       if (!id) throw new Error("Lead ID is required");
-      return commentsService.addComment(id, content);
+      return commentService.addComment(Number(id), content);
     },
     onSuccess: () => {
       // Invalidate and refetch comments
@@ -145,7 +116,7 @@ const LeadComments = () => {
             <Button 
               onClick={handleAddComment} 
               disabled={!newComment.trim() || mutation.isPending}
-              className="rounded-full bg-blue-500 hover:bg-blue-600"
+              className="rounded-full bg-[#FF6B00] hover:bg-[#E45A00]"
             >
               {mutation.isPending ? (
                 <>

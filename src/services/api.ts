@@ -113,7 +113,7 @@ export const leadService = {
 export const commentService = {
   getComments: async (leadId: number) => {
     try {
-      const response = await api.get(`/api/comments/${leadId}`);
+      const response = await api.get(`/api/comments/leads/${leadId}/comments`);
       return response.data;
     } catch (error) {
       console.error('Get comments error:', error);
@@ -123,7 +123,7 @@ export const commentService = {
   
   addComment: async (leadId: number, comment: string) => {
     try {
-      const response = await api.post('/api/comments', { leadId, comment });
+      const response = await api.post(`/api/comments/leads/${leadId}/comments`, { content: comment });
       return response.data;
     } catch (error) {
       console.error('Add comment error:', error);
