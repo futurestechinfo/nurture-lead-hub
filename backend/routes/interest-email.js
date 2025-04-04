@@ -37,12 +37,18 @@ router.post('/', async (req, res) => {
     
     const leadData = lead[0];
     
-    // Update lead interest status in database
+    // Instead of updating a non-existent column, we'll add a note to the lead
+    const note = interested 
+      ? 'Lead marked as interested' 
+      : 'Lead marked as not interested';
+    
+    // Update the notes field instead of trying to use a non-existent 'interested' column
     await pool.query(
-      'UPDATE leads SET interested = ? WHERE id = ?',
-      [interested ? 1 : 0, leadId]
+      'UPDATE leads SET notes = CONCAT(?, IF(notes IS NULL OR notes = "", "", CONCAT("\\n", notes))) WHERE id = ?',
+      [note, leadId]
     );
     
+    // If the lead is interested, send an email notification
     if (interested) {
       // Send email with lead details
       const mailOptions = {
@@ -73,7 +79,10 @@ router.post('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Error processing interest email:', error);
-    res.status(500).json({ message: 'Failed to process interest' });
+    res.status(500).json({ 
+      message: 'Failed to process interest',
+      error: error.message 
+    });
   }
 });
 
